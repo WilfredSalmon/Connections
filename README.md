@@ -10,6 +10,6 @@ Have you and your friends been sending the results of your NYT connections puzzl
 
 ## Instructions:
 1. Clone the repository
-2. Export the whatsapp chat (without media), save the exported file as `_chat.txt` in this folder
+2. Export the whatsapp chat (without media), save the exported file as `_chat.txt` in the repository folder
 3. Run `data_extraction.py`, double check that the last NYT connections puzzle that was sent in the chat is printed to the console
 4. Run `data_analysis.py` - follow the console instructions
