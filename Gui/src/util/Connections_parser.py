@@ -1,30 +1,53 @@
 from .Raw_Block import Raw_Block
+from .Player import Player
+from .Block import Block
 import re, pickle
+from typing import Dict, List
 
 class Connections_parser():
     def __init__(self, import_path : str, export_path : str):
         with open(import_path, mode = 'r', encoding='utf-8-sig') as fl:
-            lines = fl.readlines()
+            self.lines = fl.readlines()
         
-        lines.append('buffer line')
-        self.lines = lines
+        self.lines.append('buffer line')
         
-        self.length = len(lines)
-        self.blocks = []
+        self.raw_blocks : List[Raw_Block] = []
         self.export_path = export_path
 
     def extract_blocks(self):
         print('beginning parsing')
 
-        for i in range(self.length):
-            if contains_puzzle_number(self.lines[i]):
-                self.blocks.append(self.extract_block_at_index(i))
+        for index, line in enumerate(self.lines):
+            if contains_puzzle_number(line):
+                self.raw_blocks.append(self.extract_block_at_index(index))
 
-        print(f'done parsing, found {len(self.blocks)} valid puzzles')
-        print(self.blocks[-1])
+        print(f'done parsing, found {len(self.raw_blocks)} valid puzzles')
+        print(self.raw_blocks[-1])
+        print('Analysing data')
+
+        self.name_player_dict : Dict[str, Player] = {}
+        self.puzzle_numbers : List[int] = []
+
+        for raw_block in self.raw_blocks:
+            block = Block(raw_block) # TODO add error handling
+            name = block.name
+
+            if name not in self.name_player_dict:
+                self.name_player_dict[name] = Player(name)
+
+            if block.number not in self.puzzle_numbers:
+                self.puzzle_numbers.append(block.number)
+
+            self.name_player_dict[name].add_block(block)
+        
+        self.puzzle_numbers.sort()
+        
+        for player in self.name_player_dict.values():
+            player.process_data()
 
         with open(self.export_path, 'wb') as fl:
-            pickle.dump(self.blocks, fl)
+            pickle.dump(self.name_player_dict, fl)
+            pickle.dump(self.puzzle_numbers, fl)
         
     def extract_block_at_index(self, puzzle_line_index):
         block = Raw_Block()
@@ -36,7 +59,7 @@ class Connections_parser():
         return block
 
     def get_header_line(self, puzzle_line_index):
-        j=1
+        j = 1
         while not constains_message_header(self.lines[puzzle_line_index-j]):
             j += 1
 
@@ -57,6 +80,7 @@ class Connections_parser():
     
 def contains_puzzle_number(string):
     search_attempt = re.search('Puzzle #[0-9]+', string)
+    
     if search_attempt == None:
         return False
     
