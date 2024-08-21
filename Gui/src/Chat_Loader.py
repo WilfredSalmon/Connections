@@ -6,7 +6,7 @@ from .buttons.Default_Button import Default_Button
 class Chat_Loader(QtWidgets.QWidget):
     chat_loaded = QtCore.pyqtSignal()
 
-    def __init__(self, parent = None):
+    def __init__(self, parent : QtWidgets.QWidget = None):
         super().__init__(parent = parent)
 
         label = QtWidgets.QLabel("No chat history loaded", parent = self)
