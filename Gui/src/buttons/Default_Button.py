@@ -10,10 +10,19 @@ class Default_Button(QtWidgets.QPushButton):
     _unpressed_text_pen = QtGui.QPen(QtGui.QColor("black"))
     _pressed_text_pen = QtGui.QPen(QtGui.QColor("black"))
 
+    _shadow_color = QtGui.QColor("#c2c4c4")
+
     def __init__(self, text : str = None, parent = None):
         super().__init__(parent = parent)
         self.button_text = text
         self.button_held = False
+
+        shadow = QtWidgets.QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(15)
+        shadow.setOffset(5)
+        shadow.setColor(self._shadow_color)
+
+        self.setGraphicsEffect(shadow)
 
     def sizeHint(self):
         return QtCore.QSize(100, 30)
@@ -39,7 +48,7 @@ class Default_Button(QtWidgets.QPushButton):
         else:
             painter.setPen(self._unpressed_text_pen)
 
-        painter.drawText(content_rectangle, Qt.AlignmentFlag.AlignCenter, self.button_text)  
+        painter.drawText(content_rectangle, Qt.AlignmentFlag.AlignCenter, self.button_text)
 
     def mousePressEvent(self, e):
         self.button_held = True
