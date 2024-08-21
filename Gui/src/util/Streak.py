@@ -1,7 +1,14 @@
 from enum import Enum
+from typing import List
+from .Block import Block
+
+class Streak_Type(Enum):
+    ONGOING = 1
+    LOST = 2
+    INTERRUPTED = 3
 
 class Streak():
-    def __init__(self, blocks, streak_type):
+    def __init__(self, blocks : List[Block], streak_type : Streak_Type):
         self.blocks = blocks
         self.streak_type = streak_type
 
@@ -37,13 +44,8 @@ class Streak():
             case Streak_Type.INTERRUPTED:
                 return f'''length {self.length}, starting on puzzle {self.starting_number} and continuing until puzzle {self.final_win_number}.
     This streak ended on puzzle {self.ended_number}, where no attempt was submitted'''
-        
-class Streak_Type(Enum):
-    ONGOING = 1
-    LOST = 2
-    INTERRUPTED = 3
-
-def get_category_string(integer):
+    
+def get_category_string(integer : int) -> str:
     if integer == 1:
         return 'category'
     else:

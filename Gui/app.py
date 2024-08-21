@@ -33,12 +33,12 @@ class Main_Window(QtWidgets.QMainWindow):
             self.setCentralWidget(chat_loader)
             chat_loader.chat_loaded.connect(self.chat_loaded)
 
-    def chat_loaded(self):
+    def chat_loaded(self) -> None:
         parsed_text_filepath = Path(parsed_file_path)
 
         if not parsed_text_filepath.is_file():
             parser = Connections_parser(chatlog_file_path, parsed_file_path)
-            parser.extract_blocks()
+            parser.extract_data()
 
         self.setCentralWidget(QtWidgets.QLabel("Chat loaded and parsed!"))
 
