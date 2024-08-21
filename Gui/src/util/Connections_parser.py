@@ -14,7 +14,7 @@ class Connections_parser():
         self.raw_blocks : List[Raw_Block] = []
         self.export_path = export_path
 
-    def extract_blocks(self):
+    def extract_data(self):
         print('beginning parsing')
 
         for index, line in enumerate(self.lines):
@@ -49,28 +49,28 @@ class Connections_parser():
             pickle.dump(self.name_player_dict, fl)
             pickle.dump(self.puzzle_numbers, fl)
         
-    def extract_block_at_index(self, puzzle_line_index):
-        block = Raw_Block()
+    def extract_block_at_index(self, puzzle_line_index : int) -> Raw_Block:
+        raw_block = Raw_Block()
 
-        block.add_lines(self.get_header_line(puzzle_line_index))
-        block.add_lines(self.get_puzzle_line(puzzle_line_index))
-        block.add_lines(self.get_square_lines(puzzle_line_index))
+        raw_block.add_lines(self.get_header_line(puzzle_line_index))
+        raw_block.add_lines(self.get_puzzle_line(puzzle_line_index))
+        raw_block.add_lines(self.get_square_lines(puzzle_line_index))
 
-        return block
+        return raw_block
 
-    def get_header_line(self, puzzle_line_index):
+    def get_header_line(self, puzzle_line_index : int) -> str:
         j = 1
         while not constains_message_header(self.lines[puzzle_line_index-j]):
             j += 1
 
         return trim_newline_character(self.lines[puzzle_line_index-j])
     
-    def get_puzzle_line(self, puzzle_line_index):
+    def get_puzzle_line(self, puzzle_line_index : int) -> str:
         return trim_newline_character(self.lines[puzzle_line_index])
 
-    def get_square_lines(self, puzzle_line_index):
-        square_lines = []
-        j=1
+    def get_square_lines(self, puzzle_line_index : int) -> str:
+        square_lines : List[str] = []
+        j = 1
         
         while is_square_line(self.lines[puzzle_line_index+j]):
             square_lines.append(trim_newline_character(self.lines[puzzle_line_index+j]))
@@ -78,7 +78,7 @@ class Connections_parser():
         
         return square_lines
     
-def contains_puzzle_number(string):
+def contains_puzzle_number(string : str) -> bool:
     search_attempt = re.search('Puzzle #[0-9]+', string)
     
     if search_attempt == None:
@@ -86,11 +86,11 @@ def contains_puzzle_number(string):
     
     return re.search('Puzzle #[0-9]+', string)[0] == trim_newline_character(string)
 
-def constains_message_header(string):
+def constains_message_header(string : str) -> bool:
     return re.search(r'\[\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}:\d{2}\]', string) != None
 
-def is_square_line(string):
+def is_square_line(string : str) -> bool:
     return re.search('[🟨🟩🟦🟪]{4}', string) != None
 
-def trim_newline_character(string):
+def trim_newline_character(string : str) -> str:
     return string[0:-1]

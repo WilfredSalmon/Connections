@@ -26,7 +26,7 @@ class Chat_Loader(QtWidgets.QWidget):
 
         self.setLayout(layout)
         
-    def load_chat(self):
+    def load_chat(self) -> None:
         print("Loading chat")
         popup = QtWidgets.QFileDialog(self)
         popup.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)

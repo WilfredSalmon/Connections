@@ -1,26 +1,28 @@
 from .Streak import Streak, Streak_Type
+from .Block import Block
+from typing import List, Dict
 
 class Player:
-    def __init__(self, name):
+    def __init__(self, name : str):
         self.name = name
         
-        self.blocks = []
-        self.block_dictionary = {}
+        self.blocks : List[Block] = []
+        self.block_dictionary : Dict[int, Block] = {}
 
-        self.streaks = []
+        self.streaks : List[Streak] = []
 
         self.total_puzzles = 0
         self.total_wins = 0
         self.total_categories_found = 0
         self.total_attempts = 0
 
-    def add_block(self, block):
+    def add_block(self, block : Block) -> None:
         self.blocks.append(block)
         self.block_dictionary[block.number] = block
         
         self.update_stats(block)
 
-    def update_stats(self, block):
+    def update_stats(self, block : Block) -> None:
         self.total_puzzles += 1
         self.total_wins += block.won
         self.total_categories_found += block.number_found
@@ -31,15 +33,14 @@ class Player:
         self.find_streaks()
         self.set_longest_streak()
     
-    def sort_blocks(self):
+    def sort_blocks(self) -> None:
         self.blocks.sort(key = lambda x : x.number)
     
-    def find_streaks(self):
+    def find_streaks(self) -> None:
         current_streak_length = 0
-        current_streak_blocks = []
+        current_streak_blocks : List[Block] = []
                 
         for block in self.blocks:
-            
             if block.won:
                 current_streak_blocks.append(block)
                 
@@ -68,7 +69,7 @@ class Player:
         else:
             self.current_streak = None
     
-    def set_longest_streak(self):
+    def set_longest_streak(self) -> None:
         if len(self.streaks) == 0:
             self.longest_streak = None
         else:
@@ -88,7 +89,7 @@ class Player:
     Their longest streak is {get_streak_string(self.longest_streak)}
     Their current streak is {get_streak_string(self.current_streak)}\n'''
 
-def get_streak_string(streak):
+def get_streak_string(streak : Streak | None) -> str:
     if streak == None:
         return 'length 0 :('
     
