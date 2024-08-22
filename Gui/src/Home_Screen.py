@@ -26,7 +26,7 @@ class _Sorting_State(Enum):
 class _Sortable_Header(QtWidgets.QPushButton):
     state_changed = QtCore.pyqtSignal()
     _horizontal_padding = 10
-    _vertical_padding = 10
+    _vertical_padding = 5
     _sort_icon_brush = QtGui.QBrush(QtGui.QColor("black"))
     _sort_icon_width = 10
     _sort_icon_height = 7
@@ -38,21 +38,23 @@ class _Sortable_Header(QtWidgets.QPushButton):
         self.state = initial_state
         self.sorting_method = sorting_method
         self.header_title = header_title
-        self.font = font
+        self.header_font = font
         
-        self.font_metric = QtGui.QFontMetrics(self.font)
+        self.font_metric = QtGui.QFontMetrics(self.header_font)
 
         self.split_header = header_title.split()
         self.widths = [self.get_width(word) for word in self.split_header]
+        
         self.space_width = self.get_width(" ")
 
         max_text_width = max(self.widths)
         self.sorting_icon_width = self._horizontal_padding + self._sort_icon_width
         
-        self.min_width = max_text_width + self.sorting_icon_width + self._horizontal_padding
-        self.max_height = self.font_metric.height() * len(self.split_header) + self._vertical_padding
+        self.min_width = max_text_width + self.sorting_icon_width + 2*self._horizontal_padding
+        max_lines = len(self.split_header)
+        self.max_height = self.font_metric.height() * max_lines + 2*self._vertical_padding
 
-        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.Maximum)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.Minimum)
 
     def get_width(self, string : str) -> int:
         return self.font_metric.horizontalAdvance(string)
@@ -71,19 +73,23 @@ class _Sortable_Header(QtWidgets.QPushButton):
 
     def paintEvent(self, e : QtGui.QPaintEvent):
         painter = QtGui.QPainter(self)
-        painter.setFont(self.font)
+        painter.setFont(self.header_font)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         
         content_rectangle = self.contentsRect()
-        padded_rect = QtCore.QRect(0, 0, content_rectangle.width() - self._horizontal_padding, content_rectangle.height() - self._vertical_padding)
-        padded_rect.moveCenter(content_rectangle.center())
+        text_rect = QtCore.QRect(
+            self._horizontal_padding, 
+            self._vertical_padding, 
+            content_rectangle.width() - 3*self._horizontal_padding - self._sort_icon_width,
+            content_rectangle.height() - 2*self._vertical_padding
+        )
         
-        allowable_width = padded_rect.width() - self.sorting_icon_width
-        text_to_draw = self._get_wrapped_text(allowable_width)
+        allowable_width = text_rect.width()
+        self.update_wrapped_text(allowable_width)
 
-        painter.drawText(padded_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, text_to_draw)
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter, self.text_to_draw)
 
-        sort_icon_middle_right = padded_rect.topRight().toPointF() + QtCore.QPointF(0, padded_rect.height()/2)
+        sort_icon_middle_right = content_rectangle.topRight().toPointF() + QtCore.QPointF(-self._horizontal_padding, content_rectangle.height()/2)
         self.draw_sort_icon(painter, sort_icon_middle_right)
 
     def draw_sort_icon(self, painter : QtGui.QPainter, middle_right : QtCore.QPointF):
@@ -114,10 +120,11 @@ class _Sortable_Header(QtWidgets.QPushButton):
         path.lineTo(path.currentPosition() + QtCore.QPointF(self._sort_icon_width, 0))
         painter.fillPath(path, self._sort_icon_brush)
 
-    def _get_wrapped_text(self, allowable_width):
+    def update_wrapped_text(self, allowable_width : int):
         # Start negative to account for no initial space
         current_width = - self.space_width
-        text_to_draw = ""
+        self.text_to_draw = ""
+        self.line_breaks = 0
 
         for text, width in zip(self.split_header, self.widths):
             current_width += self.space_width + width
@@ -125,15 +132,14 @@ class _Sortable_Header(QtWidgets.QPushButton):
             if current_width > allowable_width:
                 join_char = "\n"
                 current_width = width
+                self.line_breaks += 1
             else:
                 join_char = " "
 
-            text_to_draw += join_char + text
+            self.text_to_draw += join_char + text
 
         #Remove leading space
-        text_to_draw = text_to_draw[1:]
-
-        return text_to_draw
+        self.text_to_draw = self.text_to_draw[1:]
 
 class Home_Screen(QtWidgets.QWidget):
 
@@ -207,18 +213,18 @@ class Home_Screen(QtWidgets.QWidget):
         header_font = QtGui.QFont()
         header_font.setBold(True)
 
-        set_default_sort = False
+        default_sort_set = False
 
         for index, column in enumerate(self._columns):
             if column.sortable:
                 header_widget = _Sortable_Header(column.title, column.value_getter, header_font, parent = self)
                 header_widget.state_changed.connect(lambda header = header_widget : self.header_clicked(header))
                 
-                if not set_default_sort:
+                if not default_sort_set:
                     self.default_sort = header_widget
                     self.current_sort = header_widget
                     self.current_sort.set_state(_Sorting_State.NOT_SORTED.cycle())
-                    set_default_sort = True
+                    default_sort_set = True
 
             else:
                 header_widget = QtWidgets.QLabel(column.title, parent = self)
@@ -228,7 +234,7 @@ class Home_Screen(QtWidgets.QWidget):
             self.grid_layout.addWidget(
                 header_widget,
                 0,
-                index   
+                index
             )
 
     def set_rows(self):
