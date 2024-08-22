@@ -45,8 +45,10 @@ class Connections_parser():
         for player in self.name_player_dict.values():
             player.process_data()
 
+        player_list = list(self.name_player_dict.values())
+
         with open(self.export_path, 'wb') as fl:
-            pickle.dump(self.name_player_dict, fl)
+            pickle.dump(player_list, fl)
             pickle.dump(self.puzzle_numbers, fl)
         
     def extract_block_at_index(self, puzzle_line_index : int) -> Raw_Block:

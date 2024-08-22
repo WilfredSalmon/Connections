@@ -5,7 +5,7 @@ from src.Home_Screen import Home_Screen
 from src.util.Connections_parser import Connections_parser
 from src.util.Player import Player
 import pickle
-from typing import Dict, List
+from typing import List
 
 base_file_path = "./Gui/"
 chatlog_file_path = f"{base_file_path}files/_chat.txt"
@@ -45,10 +45,10 @@ class Main_Window(QtWidgets.QMainWindow):
             parser.extract_data()
 
         with open(parsed_file_path, 'rb') as fl:
-            self.name_player_dict : Dict[str, Player] = pickle.load(fl)
+            self.player_list : List[Player] = pickle.load(fl)
             self.puzzle_numbers : List[int] = pickle.load(fl)
 
-        home_screen = Home_Screen(self.name_player_dict, self)
+        home_screen = Home_Screen(self.player_list, self)
 
         self.setCentralWidget(home_screen)
 
