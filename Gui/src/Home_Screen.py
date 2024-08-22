@@ -141,7 +141,7 @@ class _Sortable_Header(QtWidgets.QPushButton):
         #Remove leading space
         self.text_to_draw = self.text_to_draw[1:]
 
-class Home_Screen(QtWidgets.QWidget):
+class _Stats_Table(QtWidgets.QWidget):
 
     _columns : List[_Column] = [
         _Column (
@@ -276,4 +276,23 @@ class Home_Screen(QtWidgets.QWidget):
                 self.current_sort = header
 
         self.set_rows()
-        
+
+class Home_Screen(QtWidgets.QWidget):
+    def __init__(self, player_list : List[Player], parent : QtWidgets.QWidget = None):
+        super().__init__(parent = parent)
+
+        title = QtWidgets.QLabel("NYT Connections Data")
+        title_font = title.font()
+        title_font.setPixelSize(20)
+        title.setFont(title_font)
+
+        table = _Stats_Table(player_list, parent = self)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addStretch(10)
+        layout.addWidget(title)
+        layout.addSpacing(10)
+        layout.addWidget(table, 60)
+        layout.addStretch(10)
+
+        self.setLayout(layout)

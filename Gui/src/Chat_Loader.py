@@ -14,7 +14,7 @@ class Chat_Loader(QtWidgets.QWidget):
         font.setPointSize(20)
         label.setFont(font)
 
-        button = Default_Button("Load chat", parent = parent)
+        button = Default_Button("Load chat", parent = self)
 
         button.pressed.connect(self.load_chat)
 
