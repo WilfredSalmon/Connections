@@ -80,12 +80,9 @@ class Player:
         win_percent = self.total_wins/self.total_puzzles
         avg_catergories_found = self.total_categories_found/self.total_puzzles
         avg_attempts = self.total_attempts/self.total_puzzles
-        avg_score = self.total_score/self.total_puzzles
 
         return f'''Player {self.name} has submitted {self.total_puzzles} puzzles, with {self.total_wins} wins.
     They have a win rate of {win_percent:.0%}, finding on average {avg_catergories_found:.2f} catergories in {avg_attempts:.2f} attempts.
-    They have a total score of {self.total_score}, with an average score of {avg_score:.2f}.
-    They have score distribution {self.scores}
     Their longest streak is {get_streak_string(self.longest_streak)}
     Their current streak is {get_streak_string(self.current_streak)}\n'''
 
