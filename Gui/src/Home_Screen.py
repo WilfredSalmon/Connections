@@ -24,15 +24,21 @@ class _Sorting_State(Enum):
         return _Sorting_State(new_index)
 
 class _Sortable_Header(QtWidgets.QPushButton):
-    
-    state_changed = QtCore.pyqtSignal(_Sorting_State)
+    state_changed = QtCore.pyqtSignal()
     _font = QtGui.QFont()
     _horizontal_padding = 10
     _vertical_padding = 10
+    _sort_icon_brush = QtGui.QBrush(QtGui.QColor("black"))
+    _sort_icon_width = 10
+    _sort_icon_height = 7
+    _sort_icon_gap = 2
+    _transparent_pen = QtGui.QPen(Qt.GlobalColor.transparent)
     
-    def __init__(self, header_title : str, initial_state : _Sorting_State = _Sorting_State.NOT_SORTED, parent : QtWidgets.QWidget = None):
+    def __init__(self, header_title : str, sorting_method : Callable[[Player], float], initial_state : _Sorting_State = _Sorting_State.NOT_SORTED, parent : QtWidgets.QWidget = None):
         super().__init__(parent = parent)
         self.state = initial_state
+        self.sorting_method = sorting_method
+        self.header_title = header_title
         
         self.font_metric = QtGui.QFontMetrics(self._font)
 
@@ -41,36 +47,75 @@ class _Sortable_Header(QtWidgets.QPushButton):
         self.space_width = self.get_width(" ")
 
         max_text_width = max(self.widths)
-        self.sorting_icon_width = self._horizontal_padding + self.get_width("^")
+        self.sorting_icon_width = self._horizontal_padding + self._sort_icon_width
         
         self.min_width = max_text_width + self.sorting_icon_width + self._horizontal_padding
         self.max_height = self.font_metric.height() * len(self.split_header) + self._vertical_padding
 
-        self.header_title = header_title
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.Maximum)
 
-    def sizeHint(self):
-        return QtCore.QSize(self.min_width, self.max_height)
-    
     def get_width(self, string : str) -> int:
         return self.font_metric.horizontalAdvance(string)
+    
+    def set_state(self, new_state : _Sorting_State):
+        self.state = new_state
+        self.update()
+
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(self.min_width, self.max_height)
 
     def mouseReleaseEvent(self, e : QtGui.QMouseEvent):
         self.state = self.state.cycle()
-        self.state_changed.emit(self.state)
+        self.state_changed.emit()
         self.update()
-        print(self.state)
 
     def paintEvent(self, e : QtGui.QPaintEvent):
         painter = QtGui.QPainter(self)
         painter.setFont(self._font)
-        # painter.setPen(QtGui.QColor("black"))
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        
         content_rectangle = self.contentsRect()
         padded_rect = QtCore.QRect(0, 0, content_rectangle.width() - self._horizontal_padding, content_rectangle.height() - self._vertical_padding)
         padded_rect.moveCenter(content_rectangle.center())
+        
         allowable_width = padded_rect.width() - self.sorting_icon_width
+        text_to_draw = self._get_wrapped_text(allowable_width)
 
-        #Start negative to account for no initial space
+        painter.drawText(padded_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, text_to_draw)
+
+        sort_icon_bottom_right = padded_rect.bottomRight().toPointF()
+        self.draw_sort_icon(painter, sort_icon_bottom_right)
+
+    def draw_sort_icon(self, painter : QtGui.QPainter, bottom_right : QtCore.QPointF):
+        painter.setPen(self._transparent_pen)
+
+        match self.state:
+            case _Sorting_State.NOT_SORTED:
+                self.draw_down_arrow(painter, bottom_right)
+                self.draw_up_arrow(painter, bottom_right - QtCore.QPointF(0, self._sort_icon_height + self._sort_icon_gap))
+            
+            case _Sorting_State.DESCENDING:
+                self.draw_down_arrow(painter, bottom_right)
+            
+            case _Sorting_State.ASCENDING:
+                self.draw_up_arrow(painter, bottom_right)
+
+    def draw_up_arrow(self, painter : QtGui.QPainter, bottom_right : QtCore.QPointF):
+        path = QtGui.QPainterPath(bottom_right)
+        path.lineTo(path.currentPosition() + QtCore.QPointF(-self._sort_icon_width/2, -self._sort_icon_height))
+        path.lineTo(path.currentPosition() + QtCore.QPointF(-self._sort_icon_width/2, +self._sort_icon_height))
+        path.lineTo(path.currentPosition() + QtCore.QPointF(self._sort_icon_width, 0))
+        painter.fillPath(path, self._sort_icon_brush)  
+    
+    def draw_down_arrow(self, painter : QtGui.QPainter, bottom_right : QtCore.QPointF):
+        path = QtGui.QPainterPath( bottom_right + QtCore.QPointF(0, -self._sort_icon_height) )
+        path.lineTo(path.currentPosition() + QtCore.QPointF(-self._sort_icon_width/2, self._sort_icon_height))
+        path.lineTo(path.currentPosition() + QtCore.QPointF(-self._sort_icon_width/2, -self._sort_icon_height))
+        path.lineTo(path.currentPosition() + QtCore.QPointF(self._sort_icon_width, 0))
+        painter.fillPath(path, self._sort_icon_brush)
+
+    def _get_wrapped_text(self, allowable_width):
+        # Start negative to account for no initial space
         current_width = - self.space_width
         text_to_draw = ""
 
@@ -87,7 +132,8 @@ class _Sortable_Header(QtWidgets.QPushButton):
 
         #Remove leading space
         text_to_draw = text_to_draw[1:]
-        painter.drawText(padded_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, text_to_draw)
+
+        return text_to_draw
 
 class Home_Screen(QtWidgets.QWidget):
 
@@ -96,7 +142,7 @@ class Home_Screen(QtWidgets.QWidget):
             "Name",
             lambda player : player.name,
             "",
-            False
+            True
         ),
 
         _Column (
@@ -146,34 +192,81 @@ class Home_Screen(QtWidgets.QWidget):
         super().__init__(parent = parent)
         self.player_list = player_list
 
-        layout = QtWidgets.QGridLayout()
+        self.grid_layout = QtWidgets.QGridLayout()
         
-        self.set_headers(layout)
-        self.set_rows(layout)
+        self.set_headers()
+        self.set_rows()
         
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setHorizontalSpacing(15)
-        layout.setVerticalSpacing(10)
-        self.setLayout(layout)
+        self.grid_layout.setContentsMargins(10, 10, 10, 10)
+        self.grid_layout.setHorizontalSpacing(15)
+        self.grid_layout.setVerticalSpacing(10)
+        self.grid_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        self.setLayout(self.grid_layout)
 
-    def set_headers(self, layout : QtWidgets.QGridLayout):
+    def set_headers(self):
+        set_default_sort = False
+
         for index, column in enumerate(self._columns):
             if column.sortable:
-                header_widget = _Sortable_Header(column.title, parent = self)
+                header_widget = _Sortable_Header(column.title, column.value_getter, parent = self)
+                header_widget.state_changed.connect(lambda header = header_widget : self.header_clicked(header))
+                
+                if not set_default_sort:
+                    self.default_sort = header_widget
+                    self.current_sort = header_widget
+                    self.current_sort.set_state(_Sorting_State.NOT_SORTED.cycle())
+                    set_default_sort = True
+
             else:
-                header_widget = QtWidgets.QLabel(column.title)
+                header_widget = QtWidgets.QLabel(column.title, parent = self)
             
-            layout.addWidget(
+            self.grid_layout.addWidget(
                 header_widget,
                 0,
                 index   
-            )   
+            )
 
-    def set_rows(self, layout : QtWidgets.QGridLayout):
-        for row_index, player in enumerate(self.player_list):
+    def set_rows(self):
+        player_list = self.sort_rows()
+        
+        for row_index, player in enumerate(player_list):
             for col_index, column in enumerate(self._columns): 
-                layout.addWidget(
+                self.grid_layout.addWidget(
                     QtWidgets.QLabel(column.get_string(player)),
                     row_index + 1,
                     col_index
                 )
+
+    def sort_rows(self) -> List[Player]:
+        player_list : List[Player] = []
+
+        match self.current_sort.state:           
+            case _Sorting_State.ASCENDING:
+                player_list = sorted(self.player_list, key = self.current_sort.sorting_method)
+            
+            case _Sorting_State.DESCENDING:
+                player_list = sorted(self.player_list, key = self.current_sort.sorting_method, reverse = True)
+        
+        return player_list
+
+    def header_clicked(self, header : _Sortable_Header):
+        match header.state:
+            case _Sorting_State.NOT_SORTED:
+                if header is self.current_sort:
+                    self.current_sort = self.default_sort
+                    self.default_sort.set_state(_Sorting_State.NOT_SORTED.cycle())
+            
+            case _:
+                if self.current_sort is not header:
+                    self.current_sort.set_state(_Sorting_State.NOT_SORTED)
+                self.current_sort = header
+
+        self.set_rows()
+
+    def remove_old_sort(self, header : _Sortable_Header):
+        if header is not self.current_sort:
+            if self.current_sort is not None:
+                self.current_sort.set_state(_Sorting_State.NOT_SORTED)
+            
+            self.current_sort = header
+        
