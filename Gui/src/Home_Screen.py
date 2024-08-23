@@ -48,13 +48,16 @@ class _Sortable_Header(QtWidgets.QPushButton):
         self.space_width = self.get_width(" ")
 
         max_text_width = max(self.widths)
-        self.sorting_icon_width = self._horizontal_padding + self._sort_icon_width
         
-        self.min_width = max_text_width + self.sorting_icon_width + 2*self._horizontal_padding
+        self.min_width = max_text_width + 3*self._horizontal_padding + self._sort_icon_width
+        self.max_width = self.get_width(header_title) + 3*self._horizontal_padding + self._sort_icon_width
+        print(header_title)
+        
         max_lines = len(self.split_header)
         self.max_height = self.font_metric.height() * max_lines + 2*self._vertical_padding
 
-        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Maximum)
+        self.setMinimumWidth(self.min_width)
 
     def get_width(self, string : str) -> int:
         return self.font_metric.horizontalAdvance(string)
@@ -64,7 +67,7 @@ class _Sortable_Header(QtWidgets.QPushButton):
         self.update()
 
     def sizeHint(self) -> QtCore.QSize:
-        return QtCore.QSize(self.min_width, self.max_height)
+        return QtCore.QSize(self.max_width, self.max_height)
 
     def mouseReleaseEvent(self, e : QtGui.QMouseEvent):
         self.state = self.state.cycle()
@@ -292,7 +295,7 @@ class Home_Screen(QtWidgets.QWidget):
         layout.addStretch(10)
         layout.addWidget(title)
         layout.addSpacing(10)
-        layout.addWidget(table, 60)
+        layout.addWidget(table, 60, Qt.AlignmentFlag.AlignLeft)
         layout.addStretch(10)
 
         self.setLayout(layout)
